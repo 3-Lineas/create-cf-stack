@@ -72,7 +72,7 @@ export async function addApp(name) {
   } catch (e) {
     console.error(
       color.red(
-        "❌ No se encontró la carpeta 'apps'. Asegúrate de estar en la raíz de tu monorepo.",
+        "❌ 'apps' directory not found. Make sure you are at the root of your monorepo.",
       ),
     );
     process.exit(1);
@@ -80,7 +80,7 @@ export async function addApp(name) {
 
   try {
     await fs.access(targetDir);
-    console.error(color.red(`❌ La carpeta apps/${name} ya existe.`));
+    console.error(color.red(`❌ The directory apps/${name} already exists.`));
     process.exit(1);
   } catch (e) {
     // Continue if directory doesn't exist
@@ -96,22 +96,22 @@ export async function addApp(name) {
 
   if (webExists) {
     const shouldRename = await confirm({
-      message: `📦 Se detectó una app existente 'apps/web'. ¿Quieres renombrarla a '${name}' en su lugar?`,
+      message: `📦 Existing app 'apps/web' detected. Do you want to rename it to '${name}' instead?`,
     });
 
     if (isCancel(shouldRename)) {
-      cancel("❌ Operación cancelada.");
+      cancel("❌ Operation cancelled.");
       process.exit(0);
     }
 
     if (shouldRename) {
       await renameApp("web", name);
-      outro(color.green(`🚀 ¡App renombrada a apps/${name} exitosamente!`));
+      outro(`✅ App renamed to ${color.cyan(name)} successfully.`);
       return;
     }
   }
 
-  s.start(`📥 Descargando plantilla de 'web' para crear '${name}'...`);
+  s.start(`🚀 Adding new app "${name}"...`);
 
   try {
     await downloadTemplate(
@@ -122,16 +122,6 @@ export async function addApp(name) {
       },
     );
 
-    s.stop("✨ ¡Plantilla descargada con éxito!");
-  } catch (error) {
-    s.stop("💥 Explotó algo al descargar la plantilla.");
-    console.error(error);
-    process.exit(1);
-  }
-
-  s.start("⚙️  Ajustando package.json...");
-
-  try {
     const pkgPath = path.join(targetDir, "package.json");
     const pkgContent = await fs.readFile(pkgPath, "utf-8");
     const pkg = JSON.parse(pkgContent);
@@ -139,48 +129,36 @@ export async function addApp(name) {
     pkg.name = name;
 
     const nextPort = await getNextAvailablePort();
+
     if (pkg.scripts && pkg.scripts.dev) {
-      if (pkg.scripts.dev.match(/(?:-p|--port)\s+\d+/)) {
-        pkg.scripts.dev = pkg.scripts.dev.replace(
-          /(?:-p|--port)\s+\d+/,
-          `-p ${nextPort}`,
-        );
+      if (pkg.scripts.dev.includes("-p ")) {
+        pkg.scripts.dev = pkg.scripts.dev.replace(/-p\s+\d+/, `-p ${nextPort}`);
       } else {
-        pkg.scripts.dev += ` -p ${nextPort}`;
+        pkg.scripts.dev = `${pkg.scripts.dev} -p ${nextPort}`;
       }
     }
 
     await fs.writeFile(pkgPath, JSON.stringify(pkg, null, 2));
 
-    s.stop(
-      `🔧 App '${name}' configurada correctamente en el puerto ${nextPort}.`,
-    );
+    s.stop(`✨ App "${name}" created on port ${nextPort}!`);
 
     const install = await confirm({
-      message: "📦 ¿Quieres instalar las dependencias ahora? (Recomendado)",
+      message: "📦 Do you want to install dependencies now? (Recommended)",
     });
 
-    if (isCancel(install)) {
-      cancel("❌ Operación cancelada.");
-      process.exit(0);
-    }
-
     if (install) {
-      s.start("☕ Ve por un café, esto tomará unos segundos...");
+      s.start("☕ Grab a coffee, this will take a few seconds...");
       await execa("pnpm", ["install"], { cwd: process.cwd() });
-      s.stop("🎉 ¡Dependencias instaladas!");
+      s.stop("🎉 Dependencies installed!");
     }
 
     outro(
-      color.green(
-        `🚀 ¡Nueva app creada en apps/${name}!\n\n` +
-          (install
-            ? "Todo listo para empezar."
-            : "No olvides ejecutar 'pnpm install' para actualizar dependencias."),
-      ),
+      `🎉 New app ${color.cyan(name)} added! ${
+        !install ? color.yellow("(Don't forget to run pnpm install)") : ""
+      }`,
     );
   } catch (error) {
-    s.stop("😱 Error durante la configuración.");
+    s.stop("💥 Error adding the new app.");
     console.error(error);
     process.exit(1);
   }

@@ -14,18 +14,18 @@ export async function renameApp(oldName, newName) {
   const oldPath = path.join(appsDir, oldName);
   const newPath = path.join(appsDir, newName);
 
-  s.start(`Renombrando "${oldName}" a "${newName}"...`);
+  s.start(`Renaming "${oldName}" to "${newName}"...`);
 
   try {
     await fs.access(oldPath);
   } catch (e) {
-    s.stop(`❌ No se encontró la app "${oldName}" en "apps/".`);
+    s.stop(`❌ App "${oldName}" not found in "apps/".`);
     process.exit(1);
   }
 
   try {
     await fs.access(newPath);
-    s.stop(`❌ Ya existe una app llamada "${newName}".`);
+    s.stop(`❌ An app named "${newName}" already exists.`);
     process.exit(1);
   } catch (e) {
     // Continue if new directory doesn't exist
@@ -40,11 +40,11 @@ export async function renameApp(oldName, newName) {
     pkg.name = newName;
     await fs.writeFile(pkgPath, JSON.stringify(pkg, null, 2));
 
-    s.stop(`✅ App renombrada exitosamente.`);
+    s.stop(`✅ App renamed successfully.`);
 
     return true;
   } catch (error) {
-    s.stop("💥 Error al renombrar la app.");
+    s.stop("💥 Error renaming the app.");
     console.error(error);
     process.exit(1);
   }

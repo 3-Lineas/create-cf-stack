@@ -3,6 +3,7 @@
 import { createProject } from "./commands/create.mjs";
 import { addApp } from "./commands/add.mjs";
 import { renameApp } from "./commands/rename.mjs";
+import { showHelp } from "./commands/help.mjs";
 import color from "picocolors";
 
 /**
@@ -22,7 +23,7 @@ async function main() {
       if (!appName) {
         console.error(
           color.red(
-            "❌ Por favor especifica un nombre para la nueva app: create-cf-stack add [nombre]",
+            "❌ Please specify a name for the new app: create-cf-stack add [name]",
           ),
         );
         process.exit(1);
@@ -36,12 +37,18 @@ async function main() {
       if (!oldName || !newName) {
         console.error(
           color.red(
-            "❌ Uso: create-cf-stack rename [nombre-actual] [nuevo-nombre]",
+            "❌ Usage: create-cf-stack rename [current-name] [new-name]",
           ),
         );
         process.exit(1);
       }
       await renameApp(oldName, newName);
+      break;
+    }
+    case "help":
+    case "--help":
+    case "-h": {
+      showHelp();
       break;
     }
     default: {

@@ -22,23 +22,23 @@ import color from "picocolors";
 export async function createProject() {
   intro(
     color.bgCyan(
-      color.black(" 🚀 crear-cf-stack - El comienzo de algo grande "),
+      color.black(" 🚀 create-cf-stack - The beginning of something great "),
     ),
   );
 
   const projectName = await text({
-    message: "📂 ¿Cómo llamaremos a tu nueva aventura?",
-    placeholder: "mi-app-increible",
-    defaultValue: "mi-app-increible",
+    message: "📂 What should we call your new adventure?",
+    placeholder: "my-awesome-app",
+    defaultValue: "my-awesome-app",
   });
 
   if (isCancel(projectName)) {
-    cancel("❌ Operación cancelada. ¡Vuelve pronto!");
+    cancel("❌ Operation cancelled. See you soon!");
     process.exit(0);
   }
 
   const s = spinner();
-  s.start("📥 Descargando la magia de la nube...");
+  s.start("📥 Downloading cloud magic...");
 
   try {
     await downloadTemplate(
@@ -49,14 +49,14 @@ export async function createProject() {
       },
     );
 
-    s.stop("✨ ¡Plantilla descargada con éxito!");
+    s.stop("✨ Template downloaded successfully!");
   } catch (error) {
-    s.stop("💥 Explotó algo al descargar la plantilla.");
+    s.stop("💥 Something exploded while downloading the template.");
     console.error(error);
     process.exit(1);
   }
 
-  s.start("⚙️  Ajustando los engranajes...");
+  s.start("⚙️  Adjusting the gears...");
   const projectPath = path.join(process.cwd(), projectName);
 
   try {
@@ -68,63 +68,53 @@ export async function createProject() {
 
     await fs.writeFile(pkgPath, JSON.stringify(pkg, null, 2));
 
-    s.stop("🔧 Configuración base lista.");
+    s.stop("🔧 Base configuration ready.");
   } catch (error) {
-    s.stop("😱 Error durante la configuración.");
+    s.stop("😱 Error during configuration.");
     console.error(error);
   }
 
   const install = await confirm({
-    message: "📦 ¿Quieres instalar las dependencias ahora? (Recomendado)",
+    message: "📦 Do you want to install dependencies now? (Recommended)",
   });
 
   if (isCancel(install)) {
-    cancel("❌ Operación cancelada.");
+    cancel("❌ Operation cancelled.");
     process.exit(0);
   }
 
   if (install) {
-    s.start("☕ Ve por un café, esto tomará unos segundos...");
+    s.start("☕ Grab a coffee, this will take a few seconds...");
     await execa("pnpm", ["install"], { cwd: projectPath });
-    s.stop("🎉 ¡Dependencias instaladas!");
+    s.stop("🎉 Dependencies installed!");
   }
 
   const initGit = await confirm({
-    message: "🐙 ¿Inicializamos un repositorio de Git?",
+    message: "🐙 Initialize a Git repository?",
   });
 
   if (isCancel(initGit)) {
-    cancel("❌ Operación cancelada.");
+    cancel("❌ Operation cancelled.");
     process.exit(0);
   }
 
   if (initGit) {
-    s.start("🌱 Plantando las semillas de Git...");
     try {
       await execa("git", ["init"], { cwd: projectPath });
       await execa("git", ["add", "."], { cwd: projectPath });
-      await execa("git", ["commit", "-m", "Initial commit"], {
+      await execa("git", ["commit", "-m", "chore: initial commit"], {
         cwd: projectPath,
       });
-      s.stop("🌳 Git inicializado y primer commit creado.");
+      s.stop("✅ Git repository initialized.");
     } catch (e) {
-      s.stop("🥀 No se pudo inicializar Git.");
+      s.stop("⚠️ Could not initialize Git.");
     }
   }
 
-  outro(
-    color.green(
-      `🚀 ¡Todo listo! Tu nave espacial está esperando en ./${projectName}`,
-    ),
-  );
-
-  console.log(`\n👾 Siguientes pasos para el despegue:\n`);
-  console.log(color.cyan(`  cd ${projectName}`));
-  if (!install) {
-    console.log(color.cyan(`  pnpm install`));
-  }
-  console.log(color.cyan(`  pnpm db:generate`));
-  console.log(color.cyan(`  pnpm migrate:local`));
-  console.log(color.cyan(`  pnpm dev`));
-  console.log(`\n🌟 ¡A programar se ha dicho!\n`);
+  outro(`🎉 Project ${color.cyan(projectName)} is ready!`);
+  console.log(`
+  ${color.yellow("Next steps:")}
+  ${color.cyan(`1. cd ${projectName}`)}
+  ${color.cyan("2. pnpm dev")}
+  `);
 }
