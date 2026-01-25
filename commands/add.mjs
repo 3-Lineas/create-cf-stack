@@ -6,6 +6,11 @@ import color from "picocolors";
 import { renameApp } from "./rename.mjs";
 import { execa } from "execa";
 
+/**
+ * Scans the apps directory and finds the next available port starting from 3000.
+ * Assumes port 3000 for Next.js apps that don't explicitly specify a port.
+ * @returns {Promise<number>} The next available port number.
+ */
 async function getNextAvailablePort() {
   const appsDir = path.join(process.cwd(), "apps");
   let entries = [];
@@ -25,12 +30,10 @@ async function getNextAvailablePort() {
         const pkg = JSON.parse(pkgContent);
 
         if (pkg.scripts && pkg.scripts.dev) {
-          // Busca -p 3000 o --port 3000
           const match = pkg.scripts.dev.match(/(?:-p|--port)\s+(\d+)/);
           if (match && match[1]) {
             usedPorts.add(parseInt(match[1], 10));
           } else {
-            // Si no tiene puerto explícito, pero es Next.js, asume 3000
             if (
               (pkg.dependencies && pkg.dependencies.next) ||
               (pkg.devDependencies && pkg.devDependencies.next)
@@ -40,7 +43,7 @@ async function getNextAvailablePort() {
           }
         }
       } catch (e) {
-        // Ignorar si no hay package.json o error de lectura
+        // Ignore if no package.json or error reading
       }
     }
   }
@@ -52,12 +55,18 @@ async function getNextAvailablePort() {
   return port;
 }
 
+/**
+ * Adds a new application to the monorepo from a template.
+ * If apps/web exists, offers to rename it instead of downloading.
+ * Assigns an available port and optionally installs dependencies.
+ * @param {string} name - The name of the new application.
+ * @returns {Promise<void>}
+ */
 export async function addApp(name) {
   const s = spinner();
   const targetDir = path.join(process.cwd(), "apps", name);
   const webAppPath = path.join(process.cwd(), "apps", "web");
 
-  // Verificar si la carpeta apps existe
   try {
     await fs.access(path.join(process.cwd(), "apps"));
   } catch (e) {
@@ -69,16 +78,14 @@ export async function addApp(name) {
     process.exit(1);
   }
 
-  // Verificar si la app ya existe
   try {
     await fs.access(targetDir);
     console.error(color.red(`❌ La carpeta apps/${name} ya existe.`));
     process.exit(1);
   } catch (e) {
-    // Si falla, es que no existe, podemos continuar
+    // Continue if directory doesn't exist
   }
 
-  // Verificar si existe apps/web
   let webExists = false;
   try {
     await fs.access(webAppPath);
@@ -107,7 +114,6 @@ export async function addApp(name) {
   s.start(`📥 Descargando plantilla de 'web' para crear '${name}'...`);
 
   try {
-    // Descargar solo la carpeta apps/web del repositorio
     await downloadTemplate(
       "gh:3-Lineas/Template-Turborepo-Hono-Next-Cloudflare-Dizzler-Shadcn/apps/web",
       {
@@ -132,7 +138,6 @@ export async function addApp(name) {
 
     pkg.name = name;
 
-    // Asignar puerto disponible
     const nextPort = await getNextAvailablePort();
     if (pkg.scripts && pkg.scripts.dev) {
       if (pkg.scripts.dev.match(/(?:-p|--port)\s+\d+/)) {
@@ -151,7 +156,6 @@ export async function addApp(name) {
       `🔧 App '${name}' configurada correctamente en el puerto ${nextPort}.`,
     );
 
-    // Opcional: Instalar dependencias automáticamente
     const install = await confirm({
       message: "📦 ¿Quieres instalar las dependencias ahora? (Recomendado)",
     });
@@ -163,7 +167,6 @@ export async function addApp(name) {
 
     if (install) {
       s.start("☕ Ve por un café, esto tomará unos segundos...");
-      // Ejecutar pnpm install en la raíz del monorepo
       await execa("pnpm", ["install"], { cwd: process.cwd() });
       s.stop("🎉 ¡Dependencias instaladas!");
     }

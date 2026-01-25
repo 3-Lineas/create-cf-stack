@@ -13,6 +13,12 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import color from "picocolors";
 
+/**
+ * Orchestrates the creation of a new project from a template.
+ * Prompts for project name, downloads template, configures package.json,
+ * installs dependencies (optional), and initializes Git (optional).
+ * @returns {Promise<void>}
+ */
 export async function createProject() {
   intro(
     color.bgCyan(
@@ -35,7 +41,6 @@ export async function createProject() {
   s.start("📥 Descargando la magia de la nube...");
 
   try {
-    // Repositorio de la plantilla
     await downloadTemplate(
       "gh:3-Lineas/Template-Turborepo-Hono-Next-Cloudflare-Dizzler-Shadcn",
       {
@@ -55,7 +60,6 @@ export async function createProject() {
   const projectPath = path.join(process.cwd(), projectName);
 
   try {
-    // 1. Actualizar package.json
     const pkgPath = path.join(projectPath, "package.json");
     const pkgContent = await fs.readFile(pkgPath, "utf-8");
     const pkg = JSON.parse(pkgContent);
@@ -70,7 +74,6 @@ export async function createProject() {
     console.error(error);
   }
 
-  // Opcional: Instalar dependencias automáticamente
   const install = await confirm({
     message: "📦 ¿Quieres instalar las dependencias ahora? (Recomendado)",
   });
@@ -86,7 +89,6 @@ export async function createProject() {
     s.stop("🎉 ¡Dependencias instaladas!");
   }
 
-  // Inicializar Git
   const initGit = await confirm({
     message: "🐙 ¿Inicializamos un repositorio de Git?",
   });

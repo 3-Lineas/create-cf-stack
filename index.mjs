@@ -5,6 +5,11 @@ import { addApp } from "./commands/add.mjs";
 import { renameApp } from "./commands/rename.mjs";
 import color from "picocolors";
 
+/**
+ * Main entry point for the create-cf-stack CLI.
+ * Handles command dispatching based on process arguments.
+ * @returns {Promise<void>}
+ */
 async function main() {
   console.clear();
 
