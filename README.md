@@ -27,7 +27,7 @@ npx @3lineas/create-cf-stack
 Si ya estás dentro de un monorepo creado con este stack y quieres agregar una nueva aplicación Next.js (basada en la plantilla `apps/web`):
 
 ```bash
-create-cf-stack add [nombre-de-la-app]
+npx @3lineas/create-cf-stack add [nombre-de-la-app]
 ```
 
 Esto descargará una copia fresca de `apps/web` desde el repositorio remoto y la configurará en `apps/[nombre-de-la-app]`.
@@ -37,7 +37,7 @@ Esto descargará una copia fresca de `apps/web` desde el repositorio remoto y la
 Para ver los comandos disponibles:
 
 ```bash
-create-cf-stack help
+npx @3lineas/create-cf-stack help
 ```
 
 ## Estructura del Proyecto Generado
