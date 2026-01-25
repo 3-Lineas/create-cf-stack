@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import color from "picocolors";
 import { renameApp } from "./rename.mjs";
+import { execa } from "execa";
 
 async function getNextAvailablePort() {
   const appsDir = path.join(process.cwd(), "apps");
@@ -150,9 +151,29 @@ export async function addApp(name) {
       `🔧 App '${name}' configurada correctamente en el puerto ${nextPort}.`,
     );
 
+    // Opcional: Instalar dependencias automáticamente
+    const install = await confirm({
+      message: "📦 ¿Quieres instalar las dependencias ahora? (Recomendado)",
+    });
+
+    if (isCancel(install)) {
+      cancel("❌ Operación cancelada.");
+      process.exit(0);
+    }
+
+    if (install) {
+      s.start("☕ Ve por un café, esto tomará unos segundos...");
+      // Ejecutar pnpm install en la raíz del monorepo
+      await execa("pnpm", ["install"], { cwd: process.cwd() });
+      s.stop("🎉 ¡Dependencias instaladas!");
+    }
+
     outro(
       color.green(
-        `🚀 ¡Nueva app creada en apps/${name}!\n\nNo olvides ejecutar 'pnpm install' para actualizar dependencias.`,
+        `🚀 ¡Nueva app creada en apps/${name}!\n\n` +
+          (install
+            ? "Todo listo para empezar."
+            : "No olvides ejecutar 'pnpm install' para actualizar dependencias."),
       ),
     );
   } catch (error) {
