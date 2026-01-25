@@ -9,9 +9,9 @@ import {
 } from "@clack/prompts";
 import { downloadTemplate } from "giget";
 import { execa } from "execa";
-import fs from "node:fs/promises";
 import path from "node:path";
 import color from "picocolors";
+import { readJson, writeJson } from "../utils/fs.mjs";
 
 /**
  * Orchestrates the creation of a new project from a template.
@@ -61,17 +61,17 @@ export async function createProject() {
 
   try {
     const pkgPath = path.join(projectPath, "package.json");
-    const pkgContent = await fs.readFile(pkgPath, "utf-8");
-    const pkg = JSON.parse(pkgContent);
+    const pkg = await readJson(pkgPath);
 
     pkg.name = projectName;
 
-    await fs.writeFile(pkgPath, JSON.stringify(pkg, null, 2));
+    await writeJson(pkgPath, pkg);
 
     s.stop("🔧 Base configuration ready.");
   } catch (error) {
     s.stop("😱 Error during configuration.");
     console.error(error);
+    // Don't exit here, maybe the user can still use the project
   }
 
   const install = await confirm({

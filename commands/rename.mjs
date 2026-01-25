@@ -1,6 +1,7 @@
 import path from "node:path";
 import fs from "node:fs/promises";
 import { spinner } from "@clack/prompts";
+import { pathExists, readJson, writeJson } from "../utils/fs.mjs";
 
 /**
  * Renames an application directory and updates its package.json name.
@@ -16,29 +17,23 @@ export async function renameApp(oldName, newName) {
 
   s.start(`Renaming "${oldName}" to "${newName}"...`);
 
-  try {
-    await fs.access(oldPath);
-  } catch (e) {
+  if (!(await pathExists(oldPath))) {
     s.stop(`❌ App "${oldName}" not found in "apps/".`);
     process.exit(1);
   }
 
-  try {
-    await fs.access(newPath);
+  if (await pathExists(newPath)) {
     s.stop(`❌ An app named "${newName}" already exists.`);
     process.exit(1);
-  } catch (e) {
-    // Continue if new directory doesn't exist
   }
 
   try {
     await fs.rename(oldPath, newPath);
 
     const pkgPath = path.join(newPath, "package.json");
-    const pkgContent = await fs.readFile(pkgPath, "utf-8");
-    const pkg = JSON.parse(pkgContent);
+    const pkg = await readJson(pkgPath);
     pkg.name = newName;
-    await fs.writeFile(pkgPath, JSON.stringify(pkg, null, 2));
+    await writeJson(pkgPath, pkg);
 
     s.stop(`✅ App renamed successfully.`);
 

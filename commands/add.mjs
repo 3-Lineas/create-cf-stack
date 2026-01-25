@@ -5,6 +5,7 @@ import path from "node:path";
 import color from "picocolors";
 import { renameApp } from "./rename.mjs";
 import { execa } from "execa";
+import { pathExists, readJson, writeJson } from "../utils/fs.mjs";
 
 /**
  * Scans the apps directory and finds the next available port starting from 3000.
@@ -13,40 +14,41 @@ import { execa } from "execa";
  */
 async function getNextAvailablePort() {
   const appsDir = path.join(process.cwd(), "apps");
-  let entries = [];
-  try {
-    entries = await fs.readdir(appsDir, { withFileTypes: true });
-  } catch (e) {
+
+  if (!(await pathExists(appsDir))) {
     return 3000;
   }
 
+  const entries = await fs.readdir(appsDir, { withFileTypes: true });
   const usedPorts = new Set();
 
-  for (const entry of entries) {
-    if (entry.isDirectory()) {
-      try {
-        const pkgPath = path.join(appsDir, entry.name, "package.json");
-        const pkgContent = await fs.readFile(pkgPath, "utf-8");
-        const pkg = JSON.parse(pkgContent);
+  await Promise.all(
+    entries.map(async (entry) => {
+      if (!entry.isDirectory()) return;
 
-        if (pkg.scripts && pkg.scripts.dev) {
-          const match = pkg.scripts.dev.match(/(?:-p|--port)\s+(\d+)/);
-          if (match && match[1]) {
-            usedPorts.add(parseInt(match[1], 10));
-          } else {
-            if (
-              (pkg.dependencies && pkg.dependencies.next) ||
-              (pkg.devDependencies && pkg.devDependencies.next)
-            ) {
-              usedPorts.add(3000);
-            }
-          }
+      const pkgPath = path.join(appsDir, entry.name, "package.json");
+      if (!(await pathExists(pkgPath))) return;
+
+      try {
+        const pkg = await readJson(pkgPath);
+
+        if (!pkg.scripts?.dev) return;
+
+        const match = pkg.scripts.dev.match(/(?:-p|--port)\s+(\d+)/);
+        if (match && match[1]) {
+          usedPorts.add(parseInt(match[1], 10));
+          return;
         }
-      } catch (e) {
-        // Ignore if no package.json or error reading
+
+        const hasNext = pkg.dependencies?.next || pkg.devDependencies?.next;
+        if (hasNext) {
+          usedPorts.add(3000);
+        }
+      } catch {
+        // Ignore errors reading package.json
       }
-    }
-  }
+    }),
+  );
 
   let port = 3000;
   while (usedPorts.has(port)) {
@@ -63,13 +65,11 @@ async function getNextAvailablePort() {
  * @returns {Promise<void>}
  */
 export async function addApp(name) {
-  const s = spinner();
-  const targetDir = path.join(process.cwd(), "apps", name);
-  const webAppPath = path.join(process.cwd(), "apps", "web");
+  const appsPath = path.join(process.cwd(), "apps");
+  const targetDir = path.join(appsPath, name);
+  const webAppPath = path.join(appsPath, "web");
 
-  try {
-    await fs.access(path.join(process.cwd(), "apps"));
-  } catch (e) {
+  if (!(await pathExists(appsPath))) {
     console.error(
       color.red(
         "❌ 'apps' directory not found. Make sure you are at the root of your monorepo.",
@@ -78,23 +78,12 @@ export async function addApp(name) {
     process.exit(1);
   }
 
-  try {
-    await fs.access(targetDir);
+  if (await pathExists(targetDir)) {
     console.error(color.red(`❌ The directory apps/${name} already exists.`));
     process.exit(1);
-  } catch (e) {
-    // Continue if directory doesn't exist
   }
 
-  let webExists = false;
-  try {
-    await fs.access(webAppPath);
-    webExists = true;
-  } catch (e) {
-    webExists = false;
-  }
-
-  if (webExists) {
+  if (await pathExists(webAppPath)) {
     const shouldRename = await confirm({
       message: `📦 Existing app 'apps/web' detected. Do you want to rename it to '${name}' instead?`,
     });
@@ -111,6 +100,7 @@ export async function addApp(name) {
     }
   }
 
+  const s = spinner();
   s.start(`🚀 Adding new app "${name}"...`);
 
   try {
@@ -123,14 +113,13 @@ export async function addApp(name) {
     );
 
     const pkgPath = path.join(targetDir, "package.json");
-    const pkgContent = await fs.readFile(pkgPath, "utf-8");
-    const pkg = JSON.parse(pkgContent);
+    const pkg = await readJson(pkgPath);
 
     pkg.name = name;
 
     const nextPort = await getNextAvailablePort();
 
-    if (pkg.scripts && pkg.scripts.dev) {
+    if (pkg.scripts?.dev) {
       if (pkg.scripts.dev.includes("-p ")) {
         pkg.scripts.dev = pkg.scripts.dev.replace(/-p\s+\d+/, `-p ${nextPort}`);
       } else {
@@ -138,7 +127,7 @@ export async function addApp(name) {
       }
     }
 
-    await fs.writeFile(pkgPath, JSON.stringify(pkg, null, 2));
+    await writeJson(pkgPath, pkg);
 
     s.stop(`✨ App "${name}" created on port ${nextPort}!`);
 
@@ -146,7 +135,9 @@ export async function addApp(name) {
       message: "📦 Do you want to install dependencies now? (Recommended)",
     });
 
-    if (install) {
+    if (isCancel(install)) {
+      // Don't exit, just finish the command without install
+    } else if (install) {
       s.start("☕ Grab a coffee, this will take a few seconds...");
       await execa("pnpm", ["install"], { cwd: process.cwd() });
       s.stop("🎉 Dependencies installed!");
