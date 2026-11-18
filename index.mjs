@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 
-import { createProject } from "./commands/create.mjs";
-import { addApp } from "./commands/add.mjs";
-import { renameApp } from "./commands/rename.mjs";
-import { showHelp } from "./commands/help.mjs";
 import color from "picocolors";
+import { createProject } from "#commands/create.mjs";
+import { addApp } from "#commands/add.mjs";
+import { renameApp } from "#commands/rename.mjs";
+import { showHelp } from "#commands/help.mjs";
+import { ValidationError } from "#errors/common/validation.error.mjs";
+import { normalizeError } from "#errors/common/normalize-error.mjs";
 
 /**
  * Main entry point for the create-cf-stack CLI.
@@ -21,12 +23,9 @@ async function main() {
     case "add": {
       const appName = args[1];
       if (!appName) {
-        console.error(
-          color.red(
-            "❌ Please specify a name for the new app: create-cf-stack add [name]",
-          ),
+        throw new ValidationError(
+          "Please specify a name for the new app: create-cf-stack add <name>",
         );
-        process.exit(1);
       }
       await addApp(appName);
       break;
@@ -35,12 +34,9 @@ async function main() {
       const oldName = args[1];
       const newName = args[2];
       if (!oldName || !newName) {
-        console.error(
-          color.red(
-            "❌ Usage: create-cf-stack rename [current-name] [new-name]",
-          ),
+        throw new ValidationError(
+          "Usage: create-cf-stack rename <current-name> <new-name>",
         );
-        process.exit(1);
       }
       await renameApp(oldName, newName);
       break;
@@ -58,4 +54,13 @@ async function main() {
   }
 }
 
-main().catch(console.error);
+main().catch((caughtError) => {
+  const normalizedError = normalizeError(caughtError);
+  console.error(color.red(`❌ ${normalizedError.message}`));
+
+  if (!normalizedError.silent && normalizedError.cause) {
+    console.error(color.gray(String(normalizedError.cause)));
+  }
+
+  process.exit(normalizedError.exitCode);
+});

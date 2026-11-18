@@ -1,0 +1,27 @@
+{
+  "version": "1.21.1",
+  "harness": true,
+  "language": "en",
+  "agents": [
+    "antigravity"
+  ],
+  "skills": [
+    "odd-ai",
+    "best-practices",
+    "world-class-engineering",
+    "ux-writing",
+    "docs-standards",
+    "security-audit",
+    "error-handling-logging",
+    "clean-architecture-ddd",
+    "external-service-adapters",
+    "storage-file-adapters",
+    "auth-rbac-policies",
+    "controller-orchestration-queues",
+    "webhook-idempotency",
+    "caching-rate-limiting",
+    "env-feature-flags",
+    "groove-harness"
+  ],
+  "updatedAt": "2026-11-18T01:54:28.358Z"
+}

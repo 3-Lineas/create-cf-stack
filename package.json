@@ -1,20 +1,28 @@
 {
   "name": "@3lineas/create-cf-stack",
   "version": "1.1.11",
-  "description": "CLI para crear un nuevo stack Cloudflare + Next.js + Hono",
+  "description": "Interactive CLI to scaffold a Cloudflare + Next.js + Hono Turborepo stack",
   "author": "Diego Nelson (3 Lineas)",
   "type": "module",
   "bin": {
     "create-cf-stack": "index.mjs"
   },
+  "imports": {
+    "#commands/*.mjs": "./commands/*.mjs",
+    "#utils/*.mjs": "./utils/*.mjs",
+    "#errors/*.mjs": "./errors/*.mjs"
+  },
   "files": [
     "index.mjs",
     "commands",
-    "utils"
+    "utils",
+    "errors"
   ],
   "scripts": {
     "start": "node index.mjs",
-    "format": "prettier --write \"**/*.{js,mjs,json,md}\""
+    "test": "node --test \"tests/**/*.test.mjs\"",
+    "format": "prettier --write \"**/*.{js,mjs,json,md}\"",
+    "format:check": "prettier --check \"**/*.{js,mjs,json,md}\""
   },
   "dependencies": {
     "@clack/prompts": "^0.7.0",

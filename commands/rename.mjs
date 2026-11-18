@@ -1,7 +1,13 @@
 import path from "node:path";
 import fs from "node:fs/promises";
 import { spinner } from "@clack/prompts";
-import { pathExists, readJson, writeJson } from "../utils/fs.mjs";
+import { pathExists } from "#utils/fs/path-exists.mjs";
+import { readJson } from "#utils/fs/read-json.mjs";
+import { writeJson } from "#utils/fs/write-json.mjs";
+import { validatePackageName } from "#utils/validation/validate-package-name.mjs";
+import { DirectoryNotFoundError } from "#errors/monorepo/directory-not-found.error.mjs";
+import { AppAlreadyExistsError } from "#errors/monorepo/app-already-exists.error.mjs";
+import { InternalCliError } from "#errors/common/internal-cli.error.mjs";
 
 /**
  * Renames an application directory and updates its package.json name.
@@ -10,37 +16,47 @@ import { pathExists, readJson, writeJson } from "../utils/fs.mjs";
  * @returns {Promise<boolean>} True if successful.
  */
 export async function renameApp(oldName, newName) {
-  const s = spinner();
-  const appsDir = path.join(process.cwd(), "apps");
-  const oldPath = path.join(appsDir, oldName);
-  const newPath = path.join(appsDir, newName);
+  const appsDirectory = path.join(process.cwd(), "apps");
+  const validatedOldName = validatePackageName(oldName, appsDirectory);
+  const validatedNewName = validatePackageName(newName, appsDirectory);
 
-  s.start(`Renaming "${oldName}" to "${newName}"...`);
+  const oldPath = path.join(appsDirectory, validatedOldName);
+  const newPath = path.join(appsDirectory, validatedNewName);
 
   if (!(await pathExists(oldPath))) {
-    s.stop(`❌ App "${oldName}" not found in "apps/".`);
-    process.exit(1);
+    throw new DirectoryNotFoundError(
+      `App "${validatedOldName}" was not found in "apps/".`,
+      { oldPath },
+    );
   }
 
   if (await pathExists(newPath)) {
-    s.stop(`❌ An app named "${newName}" already exists.`);
-    process.exit(1);
+    throw new AppAlreadyExistsError(
+      `An app named "${validatedNewName}" already exists in "apps/".`,
+      { newPath },
+    );
   }
+
+  const renameSpinner = spinner();
+  renameSpinner.start(
+    `Renaming "${validatedOldName}" to "${validatedNewName}"...`,
+  );
 
   try {
     await fs.rename(oldPath, newPath);
 
-    const pkgPath = path.join(newPath, "package.json");
-    const pkg = await readJson(pkgPath);
-    pkg.name = newName;
-    await writeJson(pkgPath, pkg);
+    const packageJsonPath = path.join(newPath, "package.json");
+    const packageJson = await readJson(packageJsonPath);
+    packageJson.name = validatedNewName;
+    await writeJson(packageJsonPath, packageJson);
 
-    s.stop(`✅ App renamed successfully.`);
-
+    renameSpinner.stop("✅ App renamed successfully.");
     return true;
-  } catch (error) {
-    s.stop("💥 Error renaming the app.");
-    console.error(error);
-    process.exit(1);
+  } catch (caughtError) {
+    renameSpinner.stop("💥 Error renaming the app.");
+    throw new InternalCliError(
+      `Failed to rename "${validatedOldName}" to "${validatedNewName}".`,
+      { cause: caughtError },
+    );
   }
 }

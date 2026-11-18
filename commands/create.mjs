@@ -1,17 +1,16 @@
-import {
-  intro,
-  text,
-  outro,
-  spinner,
-  isCancel,
-  cancel,
-  confirm,
-} from "@clack/prompts";
+import { intro, text, outro, spinner, isCancel, cancel } from "@clack/prompts";
 import { downloadTemplate } from "giget";
-import { execa } from "execa";
 import path from "node:path";
 import color from "picocolors";
-import { readJson, writeJson } from "../utils/fs.mjs";
+import { readJson } from "#utils/fs/read-json.mjs";
+import { writeJson } from "#utils/fs/write-json.mjs";
+import { validatePackageName } from "#utils/validation/validate-package-name.mjs";
+import { installDependencies } from "#utils/package-manager/install-dependencies.mjs";
+import { initializeGitRepository } from "#utils/git/initialize-git-repository.mjs";
+import { TemplateDownloadError } from "#errors/template/template-download.error.mjs";
+
+const TEMPLATE_SOURCE =
+  "gh:3-Lineas/Template-Turborepo-Hono-Next-Cloudflare-Dizzler-Shadcn";
 
 /**
  * Orchestrates the creation of a new project from a template.
@@ -26,90 +25,62 @@ export async function createProject() {
     ),
   );
 
-  const projectName = await text({
+  const rawProjectName = await text({
     message: "📂 What should we call your new adventure?",
     placeholder: "my-awesome-app",
     defaultValue: "my-awesome-app",
+    validate(inputValue) {
+      try {
+        validatePackageName(inputValue, process.cwd());
+        return undefined;
+      } catch (caughtError) {
+        return caughtError instanceof Error
+          ? caughtError.message
+          : "Invalid project name.";
+      }
+    },
   });
 
-  if (isCancel(projectName)) {
+  if (isCancel(rawProjectName)) {
     cancel("❌ Operation cancelled. See you soon!");
     process.exit(0);
   }
 
-  const s = spinner();
-  s.start("📥 Downloading cloud magic...");
-
-  try {
-    await downloadTemplate(
-      "gh:3-Lineas/Template-Turborepo-Hono-Next-Cloudflare-Dizzler-Shadcn",
-      {
-        dir: projectName,
-        force: true,
-      },
-    );
-
-    s.stop("✨ Template downloaded successfully!");
-  } catch (error) {
-    s.stop("💥 Something exploded while downloading the template.");
-    console.error(error);
-    process.exit(1);
-  }
-
-  s.start("⚙️  Adjusting the gears...");
+  const projectName = validatePackageName(rawProjectName, process.cwd());
   const projectPath = path.join(process.cwd(), projectName);
+  const downloadSpinner = spinner();
+  downloadSpinner.start("📥 Downloading cloud magic...");
 
   try {
-    const pkgPath = path.join(projectPath, "package.json");
-    const pkg = await readJson(pkgPath);
-
-    pkg.name = projectName;
-
-    await writeJson(pkgPath, pkg);
-
-    s.stop("🔧 Base configuration ready.");
-  } catch (error) {
-    s.stop("😱 Error during configuration.");
-    console.error(error);
-    // Don't exit here, maybe the user can still use the project
+    await downloadTemplate(TEMPLATE_SOURCE, {
+      dir: projectName,
+      force: true,
+    });
+    downloadSpinner.stop("✨ Template downloaded successfully!");
+  } catch (caughtError) {
+    downloadSpinner.stop(
+      "💥 Something exploded while downloading the template.",
+    );
+    throw new TemplateDownloadError(
+      `Failed to download template into "${projectName}".`,
+      { cause: caughtError },
+    );
   }
 
-  const install = await confirm({
-    message: "📦 Do you want to install dependencies now? (Recommended)",
-  });
-
-  if (isCancel(install)) {
-    cancel("❌ Operation cancelled.");
-    process.exit(0);
+  downloadSpinner.start("⚙️  Adjusting the gears...");
+  try {
+    const packageJsonPath = path.join(projectPath, "package.json");
+    const packageJson = await readJson(packageJsonPath);
+    packageJson.name = projectName;
+    await writeJson(packageJsonPath, packageJson);
+    downloadSpinner.stop("🔧 Base configuration ready.");
+  } catch (caughtError) {
+    downloadSpinner.stop("😱 Error during configuration.");
+    throw caughtError;
   }
 
-  if (install) {
-    s.start("☕ Grab a coffee, this will take a few seconds...");
-    await execa("pnpm", ["install"], { cwd: projectPath });
-    s.stop("🎉 Dependencies installed!");
-  }
-
-  const initGit = await confirm({
-    message: "🐙 Initialize a Git repository?",
-  });
-
-  if (isCancel(initGit)) {
-    cancel("❌ Operation cancelled.");
-    process.exit(0);
-  }
-
-  if (initGit) {
-    try {
-      await execa("git", ["init"], { cwd: projectPath });
-      await execa("git", ["add", "."], { cwd: projectPath });
-      await execa("git", ["commit", "-m", "chore: initial commit"], {
-        cwd: projectPath,
-      });
-      s.stop("✅ Git repository initialized.");
-    } catch (e) {
-      s.stop("⚠️ Could not initialize Git.");
-    }
-  }
+  await installDependencies(projectPath);
+  await initializeGitRepository(projectPath);
 
   outro(`🎉 Project ${color.cyan(projectName)} is ready!`);
   console.log(`
