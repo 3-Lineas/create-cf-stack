@@ -33,13 +33,14 @@ This file provides AI agents with instant architectural orientation for this pro
   - `monorepo/`: `app-already-exists.error.mjs`, `directory-not-found.error.mjs`.
   - `template/`: `template-download.error.mjs`.
 - `utils/`:
+  - `agent/`: `build-agent-onboarding-prompt.mjs`, `format-agent-prompt-box.mjs`.
   - `fs/`: `path-exists.mjs`, `read-json.mjs`, `write-json.mjs`.
   - `git/`: `initialize-git-repository.mjs`.
   - `monorepo/`: `get-next-available-port.mjs`.
   - `package-manager/`: `install-dependencies.mjs`.
   - `validation/`: `validate-package-name.mjs`.
 - `tests/`:
-  - `fs-utils.test.mjs`, `get-next-available-port.test.mjs`, `normalize-error.test.mjs`, `rename-app.test.mjs`, `validate-package-name.test.mjs` (`node:test`).
+  - `agent-onboarding-prompt.test.mjs`, `fs-utils.test.mjs`, `get-next-available-port.test.mjs`, `normalize-error.test.mjs`, `rename-app.test.mjs`, `validate-package-name.test.mjs` (`node:test`).
 
 ## 3. Installed Skill Scope
 - **Active Core Skills**: `best-practices`, `clean-architecture-ddd` (CLI-adapted folders), `error-handling-logging` (CLI `errors/app-error.mjs` exception), `ux-writing`, `docs-standards`, `security-audit`, `world-class-engineering`, `groove-harness`, `odd-ai`.
@@ -52,6 +53,6 @@ This file provides AI agents with instant architectural orientation for this pro
 ## 5. Essential Commands & Verification Status
 - **Scripts (`package.json`)**:
   - `start`: `node index.mjs`
-  - `test`: `node --test "tests/**/*.test.mjs"` (15/15 passing across 5 suites)
+  - `test`: `node --test "tests/**/*.test.mjs"` (24/24 passing across 6 suites)
   - `format`: `prettier --write "**/*.{js,mjs,json,md}"`
   - `format:check`: `prettier --check "**/*.{js,mjs,json,md}"` (passing)

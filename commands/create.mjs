@@ -7,6 +7,8 @@ import { writeJson } from "#utils/fs/write-json.mjs";
 import { validatePackageName } from "#utils/validation/validate-package-name.mjs";
 import { installDependencies } from "#utils/package-manager/install-dependencies.mjs";
 import { initializeGitRepository } from "#utils/git/initialize-git-repository.mjs";
+import { buildAgentOnboardingPrompt } from "#utils/agent/build-agent-onboarding-prompt.mjs";
+import { formatAgentPromptBox } from "#utils/agent/format-agent-prompt-box.mjs";
 import { TemplateDownloadError } from "#errors/template/template-download.error.mjs";
 
 const TEMPLATE_SOURCE =
@@ -87,5 +89,14 @@ export async function createProject() {
   ${color.yellow("Next steps:")}
   ${color.cyan(`1. cd ${projectName}`)}
   ${color.cyan("2. pnpm dev")}
+  ${color.cyan("3. Paste the prompt below into your AI agent to customize your project & GrooveSkills")}
   `);
+
+  const agentOnboardingPrompt = buildAgentOnboardingPrompt(projectName);
+  console.log(
+    formatAgentPromptBox(
+      "COPY & PASTE SETUP PROMPT FOR YOUR AI AGENT",
+      agentOnboardingPrompt,
+    ),
+  );
 }

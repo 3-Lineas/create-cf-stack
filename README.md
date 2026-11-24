@@ -11,6 +11,7 @@ This package downloads and configures the official [Template-Turborepo-Hono-Next
 - **Dependency Management**: Optional automatic dependency installation with `pnpm`.
 - **Git Ready**: Optional Git initialization with an initial commit.
 - **Friendly UI**: Interactive command-line interface powered by `@clack/prompts`.
+- **AI Agent Setup Prompt**: Prints a copy-pasteable GrooveSkills-style prompt after project creation to help your AI agent customize the template and GrooveSkills.
 
 ## CLI Usage
 
