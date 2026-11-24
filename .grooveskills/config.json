@@ -1,5 +1,5 @@
 {
-  "version": "1.21.1",
+  "version": "1.27.1",
   "harness": true,
   "language": "en",
   "agents": [
@@ -21,7 +21,10 @@
     "webhook-idempotency",
     "caching-rate-limiting",
     "env-feature-flags",
-    "groove-harness"
+    "groove-harness",
+    "typescript-clean",
+    "valibot-validation",
+    "testing-vitest"
   ],
-  "updatedAt": "2026-11-18T01:54:28.358Z"
+  "updatedAt": "2026-11-24T15:26:42.583Z"
 }
